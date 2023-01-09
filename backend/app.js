@@ -9,8 +9,6 @@ const app = express();
 
 dotenv.config();
 
-console.log({ process: process.env.MONGODB_PASSWORD });
-
 app.use(bodyParser.json());
 
 app.use("/api/users", usersRoutes);
