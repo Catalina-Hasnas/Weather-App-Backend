@@ -172,6 +172,51 @@ const login = async (req, res, next) => {
   });
 };
 
+const updateUser = async (req, res, next) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data.", 422)
+    );
+  }
+  const token = req.headers.authorization.split(" ")[1];
+  const decodedToken = jwt.verify(token, "secret-key");
+
+  const userId = decodedToken.id;
+
+  const { prefferences } = req.body;
+
+  const { location, notificationTime, weatherAlerts } = prefferences;
+
+  let user;
+  try {
+    user = await User.findById(userId);
+  } catch (err) {
+    const error = new HttpError("Could not find user with this id.", 500);
+    return next(error);
+  }
+
+  user.prefferences.location = location;
+  user.prefferences.notificationTime = notificationTime;
+  user.prefferences.weatherAlerts = weatherAlerts;
+
+  try {
+    await user.save();
+  } catch (err) {
+    const error = new HttpError(
+      "Something went wrong, could not update place.",
+      500
+    );
+    return next(error);
+  }
+
+  res
+    .status(200)
+    .json({ prefferences: user.prefferences.toObject({ getters: true }) });
+};
+
 exports.getUsers = getUsers;
 exports.signup = signup;
 exports.login = login;
+exports.updateUser = updateUser;
