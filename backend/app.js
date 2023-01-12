@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const usersRoutes = require("./routes/users-routes");
+const weatherRoutes = require("./routes/weather-routes");
 const HttpError = require("./models/http-error");
 
 const app = express();
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/users", usersRoutes);
+app.use("/api/weather", weatherRoutes);
 
 app.use((req, res, next) => {
   const error = new HttpError("Couldn't find this route", 404);
