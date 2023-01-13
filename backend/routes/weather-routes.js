@@ -6,8 +6,8 @@ const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
-router.use(checkAuth);
+// router.use(checkAuth);
 
-router.get("/", getWeather);
+router.get("/:city", getWeather);
 
 module.exports = router;

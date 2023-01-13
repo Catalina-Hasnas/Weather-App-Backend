@@ -1,9 +1,6 @@
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-// const dayjs = require("dayjs");
-// const utc = require("dayjs/plugin/utc");
-// dayjs.extend(utc);
 
 const HttpError = require("../models/http-error");
 const User = require("../models/user");
@@ -51,6 +48,14 @@ const signup = async (req, res, next) => {
     return next(error);
   }
 
+  if (!name || !email || !password) {
+    const error = new HttpError(
+      "Name, Email, Password are required fields.",
+      422
+    );
+    return next(error);
+  }
+
   let hashedPassword;
   try {
     hashedPassword = await bcrypt.hash(password, 12);
@@ -66,11 +71,8 @@ const signup = async (req, res, next) => {
     name,
     email,
     password: hashedPassword,
-    prefferences: {
-      location: [],
-      notificationTime: [],
-      weatherAlerts: false,
-    },
+    city: "",
+    weatherAlerts: false,
   });
 
   try {
@@ -87,8 +89,8 @@ const signup = async (req, res, next) => {
   try {
     token = jwt.sign(
       { id: createdUser.id, email: createdUser.email },
-      "secret-key",
-      { expiresIn: "1h" }
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "3h" }
     );
   } catch (err) {
     const error = new HttpError(
@@ -101,7 +103,6 @@ const signup = async (req, res, next) => {
   res.status(201).json({
     id: createdUser.id,
     email: createdUser.email,
-    prefferences: createdUser.prefferences,
     token,
   });
 };
@@ -153,8 +154,8 @@ const login = async (req, res, next) => {
   try {
     token = jwt.sign(
       { id: existingUser.id, email: existingUser.email },
-      "secret-key",
-      { expiresIn: "1h" }
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "3h" }
     );
   } catch (err) {
     const error = new HttpError(
@@ -167,7 +168,6 @@ const login = async (req, res, next) => {
   res.json({
     id: existingUser.id,
     email: existingUser.email,
-    prefferences: existingUser.prefferences,
     token,
   });
 };
@@ -181,39 +181,49 @@ const updateUser = async (req, res, next) => {
     );
   }
   const token = req.headers.authorization.split(" ")[1];
-  const decodedToken = jwt.verify(token, "secret-key");
+  const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
   const userId = decodedToken.id;
 
-  const { prefferences } = req.body;
-
-  const { location, notificationTime, weatherAlerts } = prefferences;
-
   let user;
   try {
-    user = await User.findById(userId);
+    user = await User.findById(userId).lean();
   } catch (err) {
     const error = new HttpError("Could not find user with this id.", 500);
     return next(error);
   }
 
-  user.prefferences.location = location;
-  user.prefferences.notificationTime = notificationTime;
-  user.prefferences.weatherAlerts = weatherAlerts;
+  const userProps = Object.keys(user);
+  const reqProps = Object.keys(req.body);
 
-  try {
-    await user.save();
-  } catch (err) {
+  const reqHasAdditionalProps = reqProps.filter(
+    (property) => !userProps.includes(property)
+  );
+
+  if (reqHasAdditionalProps.length > 0) {
     const error = new HttpError(
-      "Something went wrong, could not update place.",
+      "You can only update already existing properties.",
       500
     );
     return next(error);
   }
 
-  res
-    .status(200)
-    .json({ prefferences: user.prefferences.toObject({ getters: true }) });
+  let updatedUser;
+  try {
+    updatedUser = await User.findOneAndUpdate(
+      { id: userId },
+      { ...req.body },
+      { returnOriginal: false }
+    );
+  } catch (err) {
+    const error = new HttpError(
+      "Something went wrong, could not update user.",
+      500
+    );
+    return next(error);
+  }
+
+  res.status(200).json({ updatedUser: updatedUser });
 };
 
 exports.getUsers = getUsers;
