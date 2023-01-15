@@ -7,8 +7,8 @@ const citySchema = new Schema({
   name: { type: String, required: true },
   weather: [
     {
-      date: { type: Date, required: true },
-      hour: [
+      date: { type: String, required: true },
+      by_hour: [
         {
           time: { type: Date, required: true },
           temp_c: { type: Number, required: true },
