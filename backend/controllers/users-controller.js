@@ -27,7 +27,7 @@ const signup = async (req, res, next) => {
     );
   }
 
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
 
   let existingUser;
   try {
@@ -48,11 +48,8 @@ const signup = async (req, res, next) => {
     return next(error);
   }
 
-  if (!name || !email || !password) {
-    const error = new HttpError(
-      "Name, Email, Password are required fields.",
-      422
-    );
+  if (!email || !password) {
+    const error = new HttpError("Email and Password are required fields.", 422);
     return next(error);
   }
 
@@ -68,7 +65,6 @@ const signup = async (req, res, next) => {
   }
 
   const createdUser = new User({
-    name,
     email,
     password: hashedPassword,
     city: "",
