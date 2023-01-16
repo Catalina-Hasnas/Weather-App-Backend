@@ -99,7 +99,7 @@ const signup = async (req, res, next) => {
   res.status(201).json({
     id: createdUser.id,
     email: createdUser.email,
-    token,
+    token: `Bearer ${token}`,
   });
 };
 
@@ -164,7 +164,8 @@ const login = async (req, res, next) => {
   res.json({
     id: existingUser.id,
     email: existingUser.email,
-    token,
+    city: existingUser.city,
+    token: `Bearer ${token}`,
   });
 };
 
@@ -207,7 +208,7 @@ const updateUser = async (req, res, next) => {
   let updatedUser;
   try {
     updatedUser = await User.findOneAndUpdate(
-      { id: userId },
+      { _id: userId },
       { ...req.body },
       { returnOriginal: false }
     );
