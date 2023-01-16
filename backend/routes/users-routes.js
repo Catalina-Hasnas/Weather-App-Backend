@@ -4,6 +4,7 @@ const {
   signup,
   login,
   updateUser,
+  checkToken,
 } = require("../controllers/users-controller");
 const checkAuth = require("../middleware/check-auth");
 
@@ -18,5 +19,7 @@ router.post("/login", login);
 router.use(checkAuth);
 
 router.patch("/", updateUser);
+
+router.get("/checkToken", checkToken)
 
 module.exports = router;

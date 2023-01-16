@@ -223,7 +223,31 @@ const updateUser = async (req, res, next) => {
   res.status(200).json({ updatedUser: updatedUser });
 };
 
+const checkToken = async (req, res, next) => { 
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data.", 422)
+    );
+  }
+  const token = req.headers.authorization.split(" ")[1];
+  const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+  const userId = decodedToken.id;
+
+  let user = null;
+  try {
+    user = await User.findById(userId).lean();
+  } catch (err) {
+    const error = new HttpError("Could not find user with this id.", 500);
+    return next(error);
+  }
+  res.status(200).json({email: user.email, city: user.city})
+}
+
 exports.getUsers = getUsers;
 exports.signup = signup;
 exports.login = login;
 exports.updateUser = updateUser;
+exports.checkToken = checkToken;
