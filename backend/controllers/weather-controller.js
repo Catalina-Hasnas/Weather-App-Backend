@@ -9,7 +9,14 @@ dayjs.extend(utc);
 const getWeather = async (req, res, next) => {
   const city = req.params.city;
 
-  const existingCity = await City.findOne({ name: city }).lean().exec();
+  const existingCityWithUpdatedData = await City.findOne({
+    name: city,
+    weather: {
+      $elemMatch: { date: dayjs().utc().startOf("day").format("YYYY-MM-DD") },
+    },
+  })
+    .lean()
+    .exec();
 
   const formatResponse = (weatherArr) => {
     return weatherArr.reduce(
@@ -57,13 +64,17 @@ const getWeather = async (req, res, next) => {
         }),
       };
     });
-    const newCity = new City({
-      name: city,
-      weather: forecastDay,
-    });
+
     let result = {};
     try {
-      await newCity.save();
+      await City.replaceOne(
+        { name: city },
+        {
+          name: city,
+          weather: forecastDay,
+        },
+        { upsert: true }
+      ).exec();
       result = await formatResponse(forecastDay);
     } catch (err) {
       const error = new HttpError("Failed to create another city.", 500);
@@ -74,7 +85,7 @@ const getWeather = async (req, res, next) => {
 
   let response;
 
-  if (!existingCity) {
+  if (!existingCityWithUpdatedData) {
     try {
       response = await fetchWeather(city);
     } catch (err) {
@@ -84,8 +95,8 @@ const getWeather = async (req, res, next) => {
     }
   }
 
-  if (existingCity) {
-    response = await formatResponse(existingCity.weather);
+  if (existingCityWithUpdatedData) {
+    response = await formatResponse(existingCityWithUpdatedData.weather);
   }
 
   res.status(200).json({ cityWeather: response });
